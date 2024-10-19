@@ -17,7 +17,7 @@ const route = async (req: Request, res: Response) => {
   if (!body.paths) {
     return res.status(400).json({ error: "Missing paths" });
   }
-  const paths = body.paths as string[];
+  const paths = (body.paths as string[]).filter((path) => path);
 
   const promises = paths.map((pathToDelete) => {
     const fullPath = path.join(publicDirPath, decodeURI(pathToDelete));

@@ -10,7 +10,7 @@ import { getAudioDurationInSeconds } from 'get-audio-duration'
 
 export function handleAttachmentsPostRoute(server: Server) {
   server.post(
-    "/attachments/:groupId",
+    "/attachments/:groupId/:fileId",
     validGroupIdCheckMiddleware,
     tempFileMiddleware(),
     compressImageMiddleware({
@@ -51,7 +51,7 @@ const route = async (req: Request, res: Response) => {
     mimetype: req.file.mimetype,
     width: req.file.compressedWidth,
     height: req.file.compressedHeight,
-  }).catch((err) => {
+  }, true).catch((err) => {
     console.error(err);
   });
 

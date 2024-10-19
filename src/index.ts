@@ -7,20 +7,38 @@ import path from "path";
 import fs from "fs";
 import { env } from "./env";
 import { removeExpiredFiles } from "./ExpireFileService";
-import { connectRedis, redisClient } from "./utils/redis";
-import { handleTimeout } from "@nerimity/mimiqueue";
-import { RedisFlushModes } from "redis";
 const cpus = env.devMode ? 1 : os.cpus().length;
 
-if (cluster.isPrimary) {
-  await connectRedis();
-  await redisClient.flushDb(RedisFlushModes.ASYNC);
-  console.log("Connected to redis.");
 
-  handleTimeout({
-    redisClient,
-    prefix: "cdn",
-  });
+['log', 'warn', 'error'].forEach((methodName) => {
+  const originalMethod = console[methodName];
+  console[methodName] = (...args) => {
+    let initiator = 'unknown place';
+    try {
+      throw new Error();
+    } catch (e) {
+      if (typeof e.stack === 'string') {
+        let isFirst = true;
+        for (const line of e.stack.split('\n')) {
+          const matches = line.match(/^\s+at\s+(.*)/);
+          if (matches) {
+            if (!isFirst) { // first line - current function
+              // second line - caller (what we are looking for)
+              initiator = matches[1];
+              break;
+            }
+            isFirst = false;
+          }
+        }
+      }
+    }
+    originalMethod.apply(console, [...args, '\n', `  at ${initiator}`]);
+  };
+});
+
+
+
+if (cluster.isPrimary) {
 
   createFolders();
   removeExpiredVerificationsAtInterval();
