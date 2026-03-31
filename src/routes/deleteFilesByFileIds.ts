@@ -2,7 +2,7 @@ import { Server } from "hyper-express";
 import { Request, Response } from "hyper-express";
 import { checkSecretMiddleware } from "../middlewares/checkSecret.middleware";
 import path from "path";
-import fs from 'fs';
+import fs from "fs";
 import { publicDirPath } from "../utils/Folders";
 import { deleteExpiringFiles } from "../ExpireFileService";
 
@@ -17,19 +17,25 @@ const route = async (req: Request, res: Response) => {
   if (!body.paths) {
     return res.status(400).json({ error: "Missing paths" });
   }
-  const paths = body.paths as string[];
+  const paths = (body.paths as string[]).filter((path) => path);
 
   const promises = paths.map((pathToDelete) => {
-    const fullPath = path.join(publicDirPath, decodeURI(pathToDelete));
-    fs.promises.rm(fullPath, { recursive: true, force: true }).catch(() => { });
+    if (pathToDelete.endsWith("#a")) {
+      pathToDelete = pathToDelete.slice(0, -2);
+    }
+    const fullPath = path.join(publicDirPath, decodeURIComponent(pathToDelete));
+    fs.promises.rm(fullPath, { recursive: true, force: true }).catch(() => {});
   });
 
-  const fileIds = paths.map((pathToDelete) => pathToDelete.split("/")[2]!).map((fileId) => fileId!);
-  await deleteExpiringFiles(fileIds).then(() => { }).catch(() => { });
+  const fileIds = paths
+    .map((pathToDelete) => pathToDelete.split("/")[2]!)
+    .map((fileId) => fileId!);
+  await deleteExpiringFiles(fileIds)
+    .then(() => {})
+    .catch(() => {});
 
   await Promise.all(promises);
 
   console.log("Deleted", paths.length, "image(s).");
   return res.status(200).json({ status: "deleted", count: paths.length });
-}
-
+};

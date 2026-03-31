@@ -10,7 +10,7 @@ import { getAudioDurationInSeconds } from 'get-audio-duration'
 
 export function handleAttachmentsPostRoute(server: Server) {
   server.post(
-    "/attachments/:groupId",
+    "/attachments/:groupId/:fileId",
     validGroupIdCheckMiddleware,
     tempFileMiddleware(),
     compressImageMiddleware({
@@ -30,7 +30,7 @@ const route = async (req: Request, res: Response) => {
   }
 
 
-  const isAudio = req.file.mimetype === "audio/ogg" || req.file.mimetype === "audio/mp3";
+  const isAudio = req.file.mimetype === "audio/ogg" || req.file.mimetype === "audio/mp3" || req.file.mimetype === "audio/mpeg";
   const isVideo = req.file.mimetype === "video/mp4";
   let duration: number | undefined;
 
@@ -38,12 +38,13 @@ const route = async (req: Request, res: Response) => {
     duration = await getAudioDurationInSeconds(req.file.tempPath);
   }
 
+
   const result = await addToWaitingList({
     type: VerificationType.ATTACHMENT,
     fileId: req.file.fileId,
     groupId: req.params.groupId as string,
     originalFilename: req.file.originalFilename,
-    duration,
+    duration: duration ? (duration * 1000) : undefined,
     tempFilename: req.file.tempFilename,
     animated: req.file.animated,
     compressed: !!req.file.compressedFilename,
@@ -51,7 +52,7 @@ const route = async (req: Request, res: Response) => {
     mimetype: req.file.mimetype,
     width: req.file.compressedWidth,
     height: req.file.compressedHeight,
-  }).catch((err) => {
+  }, true).catch((err) => {
     console.error(err);
   });
 

@@ -21,16 +21,18 @@ model WaitingVerification {
   originalFilename  String
   filesize          Int
   mimetype          String
-  animated          Boolean
+  animated          Boolean?
 
   width             Int?
   height            Int?
 
   compressed       Boolean
+  shouldCompress    Boolean?
 
-  type               String
+  type               String?
 
   duration          Float?
+
 
 
   createdAt         DateTime @default(now())

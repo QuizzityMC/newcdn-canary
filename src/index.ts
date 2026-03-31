@@ -1,3 +1,4 @@
+console.log("Starting Workers...");
 import os from "os";
 import cluster from "cluster";
 import { createFolders, tempDirPath } from "./utils/Folders";
@@ -7,34 +8,32 @@ import path from "path";
 import fs from "fs";
 import { env } from "./env";
 import { removeExpiredFiles } from "./ExpireFileService";
-import { connectRedis, redisClient } from "./utils/redis";
-import { handleTimeout } from "@nerimity/mimiqueue";
-import { RedisFlushModes } from "redis";
-const cpus = env.devMode ? 1 : os.cpus().length;
+let cpus = env.devMode ? 1 : os.cpus().length;
+
+if (cpus >= 3) {
+  cpus = 3;
+}
+
+const workers = new Map();
 
 if (cluster.isPrimary) {
-  await connectRedis();
-  await redisClient.flushDb(RedisFlushModes.ASYNC);
-  console.log("Connected to redis.");
-
-  handleTimeout({
-    redisClient,
-    prefix: "cdn",
-  });
-
   createFolders();
   removeExpiredVerificationsAtInterval();
   removeExpiredFilesAtInterval();
   for (let i = 0; i < cpus; i++) {
-    cluster.fork({
+    const worker = cluster.fork({
       cpu: i,
     });
+    workers.set(worker.id, i);
   }
 
-  cluster.on('exit', (worker, code, signal) => {
+  cluster.on("exit", (worker, code, signal) => {
+    const cpuIndex = workers.get(worker.id);
     console.error(`Worker process ${worker.process.pid} died.`);
-    // have to just restart all clusters because of redis cache issues with socket.io online users.
-    process.exit(code);
+    workers.delete(worker.id);
+
+    const newWorker = cluster.fork({ cpu: cpuIndex });
+    workers.set(newWorker.id, cpuIndex);
   });
 } else {
   import("./worker");
@@ -52,7 +51,7 @@ async function removeExpiredVerificationsAtInterval() {
       const item = results[i];
       if (!item) continue;
       const filePath = path.join(tempDirPath, item.tempFilename);
-      fs.promises.unlink(filePath).catch(() => { });
+      fs.promises.unlink(filePath).catch(() => {});
     }
 
     console.log("Removed", results.length, "expired temp files.");

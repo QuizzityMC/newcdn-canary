@@ -15,9 +15,9 @@ interface Opts {
 
   tempFilename: string;
   originalFilename: string;
-  type: VerificationType;
+  type?: VerificationType;
 
-  animated: boolean;
+  animated?: boolean;
   filesize: number;
   mimetype: string;
 
@@ -27,9 +27,34 @@ interface Opts {
   duration?: number
 
   compressed?: boolean;
+
+  shouldCompress?: boolean;
 }
 
-export const addToWaitingList = async (opts: Opts) => {
+export const addToWaitingList = async (opts: Opts, update?: boolean) => {
+  if (update) {
+    return prisma.waitingVerification.update({
+      where: {
+        fileId: opts.fileId
+      },
+      data: {
+        type: opts.type,
+        originalFilename: opts.originalFilename,
+        tempFilename: opts.tempFilename,
+        compressed: opts.compressed || false,
+        groupId: opts.groupId,
+        animated: opts.animated,
+        filesize: opts.filesize,
+        duration: opts.duration,
+        mimetype: opts.mimetype,
+
+        shouldCompress: opts.shouldCompress,
+
+        width: opts.width,
+        height: opts.height,
+      },
+    });
+  }
   return prisma.waitingVerification.create({
     data: {
       fileId: opts.fileId,
@@ -42,6 +67,8 @@ export const addToWaitingList = async (opts: Opts) => {
       filesize: opts.filesize,
       duration: opts.duration,
       mimetype: opts.mimetype,
+
+      shouldCompress: opts.shouldCompress,
 
       width: opts.width,
       height: opts.height,

@@ -8,7 +8,7 @@ import { compressImageMiddleware } from "../middlewares/compressImage.middleware
 
 export function handleAvatarsPostRoute(server: Server) {
   server.post(
-    "/avatars/:groupId",
+    "/avatars/:groupId/:fileId",
     validGroupIdCheckMiddleware,
     tempFileMiddleware({ image: true }),
     compressImageMiddleware({
@@ -35,17 +35,20 @@ const route = async (req: Request, res: Response) => {
     return;
   }
 
-  const result = await addToWaitingList({
-    type: VerificationType.AVATAR,
-    fileId: req.file.fileId,
-    groupId: req.params.groupId as string,
-    compressed: true,
-    originalFilename: req.file.originalFilename,
-    tempFilename: req.file.tempFilename,
-    animated: req.file.animated,
-    filesize: req.file.filesize,
-    mimetype: req.file.mimetype,
-  }).catch((err) => {
+  const result = await addToWaitingList(
+    {
+      type: VerificationType.AVATAR,
+      fileId: req.file.fileId,
+      groupId: req.params.groupId as string,
+      compressed: true,
+      originalFilename: req.file.originalFilename,
+      tempFilename: req.file.tempFilename,
+      animated: req.file.animated,
+      filesize: req.file.filesize,
+      mimetype: req.file.mimetype,
+    },
+    true
+  ).catch((err) => {
     console.error(err);
   });
 

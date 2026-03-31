@@ -1,3 +1,4 @@
+import fs from "fs";
 const SupportedImages = [
   "image/jpeg",
   "image/jpg",
@@ -18,7 +19,6 @@ export function safeFilename(filename?: string) {
 
   if (!str) return "unnamed";
   return str;
-
 }
 
 export function isUrl(url: string) {
@@ -27,13 +27,11 @@ export function isUrl(url: string) {
   }
 }
 
-
-
 export async function fetchHeaders(url: string) {
   const res = await fetch(url, {
     redirect: "follow",
     follow: 4,
-  }).catch(() => { });
+  }).catch(() => {});
   if (!res) return null;
   return res;
 }
@@ -42,4 +40,19 @@ export async function getMimeByUrl(res: Response | undefined | null) {
   if (!res) return null;
   const type = res.headers.get("content-type");
   return type;
+}
+
+export async function deleteDirWithFileExclusion(
+  path: string,
+  excludeFilePath: string,
+) {
+  const files = await fs.promises.readdir(path, { withFileTypes: true });
+
+  for (const file of files) {
+    if (file.name === excludeFilePath) continue;
+    await fs.promises.rm(path + "/" + file.name, {
+      recursive: true,
+      force: true,
+    });
+  }
 }
